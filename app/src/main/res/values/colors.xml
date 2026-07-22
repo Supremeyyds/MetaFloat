@@ -1,0 +1,8 @@
+<resources>
+    <color name="ic_launcher_background">#F4F7F6</color>
+    <color name="overlay_divider">#66FFFFFF</color>
+    <color name="overlay_status_idle">#B0BEC5</color>
+    <color name="overlay_status_connecting">#FFCA28</color>
+    <color name="overlay_status_connected">#66BB6A</color>
+    <color name="overlay_status_failed">#EF5350</color>
+</resources>

@@ -1,0 +1,91 @@
+<resources>
+    <string name="app_name">MetaFloat</string>
+    <string name="overlay_channel_name">MetaFloat traffic monitor</string>
+    <string name="overlay_notification_title">MetaFloat is running</string>
+    <string name="overlay_notification_text">显示 mihomo 实时流量</string>
+    <string name="dashboard_title">Zashboard</string>
+    <string name="dashboard_not_installed">请先下载 Zashboard</string>
+    <string name="action_back">返回</string>
+    <string name="action_menu">菜单</string>
+
+    <string name="connection_status_idle">未连接</string>
+    <string name="connection_status_connecting">正在连接</string>
+    <string name="connection_status_connected">已连接</string>
+    <string name="connection_status_disconnected">已断开</string>
+    <string name="connection_status_failed">连接失败</string>
+    <string name="connection_detail_idle">连接后可开启悬浮窗或打开 Zashboard</string>
+    <string name="connection_detail_connecting">正在检查 mihomo 后端</string>
+    <string name="connection_detail_available">后端可用</string>
+    <string name="connection_disconnected_manual">已断开</string>
+    <string name="connection_config_changed">配置已变更，请重新连接</string>
+    <string name="connection_failed_default">连接失败</string>
+
+    <string name="validation_host_required">请输入主机</string>
+    <string name="validation_host_invalid">主机格式无效</string>
+    <string name="validation_port_invalid">端口必须为 1 到 65535</string>
+    <string name="validation_path_invalid">路径不能包含 ? 或 #</string>
+
+    <string name="toast_backend_required">请先连接后端</string>
+    <string name="toast_mirror_latency">镜像延迟：%1$dms</string>
+    <string name="toast_mirror_unavailable">镜像不可用</string>
+    <string name="toast_dashboard_download_complete">Zashboard 下载完成</string>
+    <string name="toast_dashboard_download_failed">Zashboard 下载失败：%1$s</string>
+    <string name="toast_dashboard_download_failed_unknown">Zashboard 下载失败</string>
+    <string name="toast_connection_success">连接成功</string>
+    <string name="toast_connection_failed">连接失败</string>
+
+    <string name="field_password">密码</string>
+    <string name="field_secondary_path">路径（可选）</string>
+    <string name="field_label">标签（可选）</string>
+    <string name="field_host">主机</string>
+    <string name="field_port">端口</string>
+    <string name="field_protocol_label">协议</string>
+    <string name="button_connecting">连接中</string>
+    <string name="button_connect">连接</string>
+    <string name="button_disconnect">断开</string>
+    <string name="button_overlay_start">开启悬浮窗</string>
+    <string name="button_overlay_stop">关闭悬浮窗</string>
+    <string name="button_dashboard_open">打开 Zashboard</string>
+    <string name="button_downloading">下载中</string>
+
+    <string name="screen_settings">设置</string>
+    <string name="section_appearance">外观与显示</string>
+    <string name="section_mode">模式</string>
+    <string name="section_connection">连接</string>
+    <string name="screen_download_mirror">下载镜像</string>
+    <string name="button_redownload_dashboard">重新下载 Zashboard</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="theme_system">跟随系统</string>
+
+    <string name="mirror_direct_github">Direct GitHub</string>
+    <string name="mirror_ghfast">ghfast.top</string>
+    <string name="mirror_gh_proxy">gh-proxy.com</string>
+    <string name="mirror_fastly_jsdelivr">fastly.jsdelivr.net</string>
+    <string name="mirror_custom">自定义镜像</string>
+    <string name="mirror_group_direct">直连</string>
+    <string name="mirror_group_sites">镜像站</string>
+    <string name="mirror_group_custom">自定义</string>
+    <string name="field_custom_mirror">自定义加速域名</string>
+    <string name="hint_custom_mirror">例如：https://ghfast.top</string>
+    <string name="button_test_selected">测试所选</string>
+    <string name="mirror_not_tested">未测试</string>
+    <string name="mirror_testing">测试中</string>
+    <string name="mirror_unavailable">不可用</string>
+    <string name="mirror_latency">%1$dms</string>
+
+    <string name="overlay_upload_label">↑</string>
+    <string name="overlay_download_label">↓</string>
+    <string name="overlay_rate_value">%1$s%2$s/s</string>
+    <string name="overlay_total_value">%1$s%2$s</string>
+    <string name="overlay_total_heading">总计</string>
+    <string name="overlay_total_upload_label">上传</string>
+    <string name="overlay_total_download_label">下载</string>
+    <string name="overlay_status_idle">未测试</string>
+    <string name="overlay_status_connecting">连接中</string>
+    <string name="overlay_status_reconnecting">重连中</string>
+    <string name="overlay_status_connected">已连接</string>
+    <string name="overlay_status_disconnected">已断开</string>
+    <string name="overlay_status_failed">失败</string>
+    <string name="overlay_start_failed">悬浮窗启动失败</string>
+</resources>
