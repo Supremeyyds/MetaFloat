@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.codex.mihomometer"
+    namespace = "com.metafloat.app"
     compileSdk = 35
 
     val releaseKeystoreFile = providers.environmentVariable("META_FLOAT_KEYSTORE_FILE").orNull
