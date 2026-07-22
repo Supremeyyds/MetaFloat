@@ -116,22 +116,16 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           APK="release/MetaFloat-v${VERSION}.apk"
           CHECKSUM="${APK}.sha256"
-          NOTES="docs/releases/${GITHUB_REF_NAME}.md"
-          if [[ ! -f "$NOTES" ]]; then
-            echo "Missing release notes: $NOTES" >&2
-            exit 1
-          fi
 
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$APK" "$CHECKSUM" --clobber
             gh release edit "$GITHUB_REF_NAME" \
-              --title "MetaFloat $GITHUB_REF_NAME" \
-              --notes-file "$NOTES"
+              --title "MetaFloat $GITHUB_REF_NAME"
           else
             gh release create "$GITHUB_REF_NAME" "$APK" "$CHECKSUM" \
               --verify-tag \
               --title "MetaFloat $GITHUB_REF_NAME" \
-              --notes-file "$NOTES"
+              --generate-notes
           fi
 
       - name: Remove temporary keystore
