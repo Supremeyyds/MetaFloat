@@ -42,7 +42,7 @@ internal fun MainScreen(
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
     onToggleOverlay: () -> Unit,
-    onOpenDashboard: () -> Unit,
+    onDashboardAction: () -> Unit,
     onTestAllMirrors: () -> Unit,
     onTestSelectedMirror: () -> Unit,
     onCancelMirrorTests: () -> Unit,
@@ -100,7 +100,7 @@ internal fun MainScreen(
                         onConnect = onConnect,
                         onDisconnect = onDisconnect,
                         onToggleOverlay = onToggleOverlay,
-                        onOpenDashboard = onOpenDashboard,
+                        onDashboardAction = onDashboardAction,
                     )
 
                     MainScreenRoute.Settings -> SettingsContent(

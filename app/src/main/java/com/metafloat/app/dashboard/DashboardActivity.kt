@@ -1,16 +1,13 @@
 package com.metafloat.app.dashboard
 
-import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -20,7 +17,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.webkit.WebViewAssetLoader
 import com.metafloat.app.R
 import com.metafloat.app.settings.AppThemeMode
 
@@ -29,10 +25,8 @@ class DashboardActivity : ComponentActivity() {
     private lateinit var toolbar: LinearLayout
     private lateinit var toolbarColors: DashboardToolbarColors
 
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        webView = WebView(this)
         toolbarColors = resolveToolbarColors()
         applySystemBarColors(toolbarColors)
 
@@ -43,34 +37,8 @@ class DashboardActivity : ComponentActivity() {
             return
         }
 
-        val assetLoader = WebViewAssetLoader.Builder()
-            .setHttpAllowed(true)
-            .addPathHandler(
-                "/zashboard/",
-                WebViewAssetLoader.InternalStoragePathHandler(this, dashboardDir),
-            )
-            .build()
-
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            cacheMode = WebSettings.LOAD_DEFAULT
-            allowContentAccess = true
-            allowFileAccess = false
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-        }
-        webView.webChromeClient = WebChromeClient()
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(
-                view: WebView,
-                request: android.webkit.WebResourceRequest,
-            ) = assetLoader.shouldInterceptRequest(request.url)
-
-            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
-                super.onPageStarted(view, url, favicon)
-                title = getString(R.string.dashboard_title)
-            }
-        }
+        val launchConfig = DashboardLaunchContract.fromIntent(intent)
+        webView = DashboardWebViewFactory.create(this, launchConfig.themeMode)
 
         val contentView = buildContentView()
         setContentView(contentView)
@@ -86,13 +54,13 @@ class DashboardActivity : ComponentActivity() {
         }
         ViewCompat.requestApplyInsets(contentView)
 
-        webView.loadUrl(
-            intent.getStringExtra(EXTRA_DASHBOARD_URL) ?: DEFAULT_DASHBOARD_URL,
-        )
+        webView.loadUrl(launchConfig.dashboardUrl)
     }
 
     override fun onDestroy() {
-        webView.destroy()
+        if (::webView.isInitialized) {
+            DashboardWebViewFactory.destroy(webView)
+        }
         super.onDestroy()
     }
 
@@ -155,12 +123,8 @@ class DashboardActivity : ComponentActivity() {
     }
 
     private fun resolveToolbarColors(): DashboardToolbarColors {
-        val themeMode = AppThemeMode.fromStorageValue(intent.getStringExtra(EXTRA_THEME_MODE))
-        val useDarkTheme = when (themeMode) {
-            AppThemeMode.LIGHT -> false
-            AppThemeMode.DARK -> true
-            AppThemeMode.SYSTEM -> isSystemInDarkTheme()
-        }
+        val themeMode = DashboardLaunchContract.fromIntent(intent).themeMode
+        val useDarkTheme = themeMode.usesDarkTheme(isSystemInDarkTheme())
         return if (useDarkTheme) {
             DashboardToolbarColors(
                 background = Color.rgb(16, 18, 20),
@@ -199,10 +163,17 @@ class DashboardActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_DASHBOARD_URL = "dashboard_url"
-        const val EXTRA_THEME_MODE = "theme_mode"
-        private const val DEFAULT_DASHBOARD_URL =
-            "http://appassets.androidplatform.net/zashboard/index.html"
+        fun createIntent(
+            context: Context,
+            dashboardUrl: String,
+            themeMode: AppThemeMode,
+        ): Intent {
+            return DashboardLaunchContract.putInto(
+                Intent(context, DashboardActivity::class.java),
+                dashboardUrl = dashboardUrl,
+                themeMode = themeMode,
+            )
+        }
     }
 }
 

@@ -1,16 +1,18 @@
 <resources>
     <string name="app_name">MetaFloat</string>
     <string name="overlay_channel_name">MetaFloat traffic monitor</string>
-    <string name="overlay_notification_title">MetaFloat is running</string>
-    <string name="overlay_notification_text">显示 mihomo 实时流量</string>
+    <string name="overlay_notification_title">点击打开Zashboard</string>
+    <string name="overlay_notification_speed">下行 %1$s　上行 %2$s</string>
+    <string name="overlay_notification_total">累计下载 %1$s　上传 %2$s</string>
     <string name="dashboard_title">Zashboard</string>
+    <string name="dashboard_release_to_dismiss">松手以关闭</string>
     <string name="dashboard_not_installed">请先下载 Zashboard</string>
     <string name="action_back">返回</string>
     <string name="action_menu">菜单</string>
 
     <string name="connection_status_idle">未连接</string>
     <string name="connection_status_connecting">正在连接</string>
-    <string name="connection_status_connected">已连接</string>
+    <string name="connection_status_connected">连接成功</string>
     <string name="connection_status_disconnected">已断开</string>
     <string name="connection_status_failed">连接失败</string>
     <string name="connection_detail_idle">连接后可开启悬浮窗或打开 Zashboard</string>
@@ -46,6 +48,7 @@
     <string name="button_overlay_start">开启悬浮窗</string>
     <string name="button_overlay_stop">关闭悬浮窗</string>
     <string name="button_dashboard_open">打开 Zashboard</string>
+    <string name="button_dashboard_download">下载 Zashboard</string>
     <string name="button_downloading">下载中</string>
 
     <string name="screen_settings">设置</string>

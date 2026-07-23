@@ -2,6 +2,7 @@ package com.metafloat.app.ui
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -25,6 +26,10 @@ import com.metafloat.app.overlay.TrafficOverlayService
 import com.metafloat.app.settings.AppThemeMode
 
 class MainActivity : ComponentActivity() {
+    private var trafficMonitoringRequested = false
+    private var showOverlayWhenPermissionGranted = false
+    private var connectedBackendVersion: String? = null
+
     private val viewModel: MainViewModel by viewModels {
         val container = (application as MetaFloatApp).container
         MainViewModel.Factory(
@@ -37,7 +42,9 @@ class MainActivity : ComponentActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
-        startOverlayServiceIfAllowed()
+        if (trafficMonitoringRequested) {
+            startTrafficMonitoringService()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +67,10 @@ class MainActivity : ComponentActivity() {
                                     .show()
 
                                 is MainUiEvent.OpenDashboard -> openDashboard(event.url, event.themeMode)
+                                is MainUiEvent.StartTrafficMonitoring -> {
+                                    ensureTrafficMonitoringStarted(event.version)
+                                }
+                                MainUiEvent.StopTrafficMonitoring -> stopTrafficMonitoringService()
                             }
                         }
                     }
@@ -77,18 +88,15 @@ class MainActivity : ComponentActivity() {
                     onDownloadMirrorChange = viewModel::updateDownloadMirror,
                     onCustomMirrorBaseUrlChange = viewModel::updateCustomMirrorBaseUrl,
                     onConnect = viewModel::connectBackend,
-                    onDisconnect = {
-                        stopOverlayService()
-                        viewModel.disconnectBackend()
-                    },
+                    onDisconnect = viewModel::disconnectBackend,
                     onToggleOverlay = {
                         if (state.overlayRunning) {
-                            stopOverlayService()
+                            hideOverlay()
                         } else {
-                            viewModel.saveAndStartOverlay(::ensureOverlayPermissionsThenStart)
+                            viewModel.saveAndStartOverlay(::ensureOverlayPermissionThenShow)
                         }
                     },
-                    onOpenDashboard = viewModel::openDashboard,
+                    onDashboardAction = viewModel::handleDashboardAction,
                     onTestAllMirrors = viewModel::testAllMirrors,
                     onTestSelectedMirror = viewModel::testSelectedMirror,
                     onCancelMirrorTests = viewModel::cancelMirrorTests,
@@ -100,11 +108,47 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        viewModel.updateOverlayRunning(TrafficOverlayService.isRunning)
+        if (TrafficOverlayService.isRunning) {
+            viewModel.restoreConnectedState(TrafficOverlayService.backendVersion)
+        }
+        viewModel.updateOverlayRunning(TrafficOverlayService.isOverlayVisible)
+        if (showOverlayWhenPermissionGranted && Settings.canDrawOverlays(this)) {
+            showOverlayWhenPermissionGranted = false
+            showOverlay()
+        }
     }
 
-    private fun ensureOverlayPermissionsThenStart() {
+    private fun ensureTrafficMonitoringStarted(version: String?) {
+        trafficMonitoringRequested = true
+        connectedBackendVersion = version
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return
+        }
+        startTrafficMonitoringService()
+    }
+
+    private fun startTrafficMonitoringService() {
+        if (!trafficMonitoringRequested) {
+            return
+        }
+        try {
+            ContextCompat.startForegroundService(
+                this,
+                TrafficOverlayService.monitoringIntent(this, connectedBackendVersion),
+            )
+        } catch (_: RuntimeException) {
+            trafficMonitoringRequested = false
+        }
+    }
+
+    private fun ensureOverlayPermissionThenShow() {
         if (!Settings.canDrawOverlays(this)) {
+            showOverlayWhenPermissionGranted = true
             startActivity(
                 Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -113,22 +157,17 @@ class MainActivity : ComponentActivity() {
             )
             return
         }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            startOverlayServiceIfAllowed()
-        }
+        showOverlay()
     }
 
-    private fun startOverlayServiceIfAllowed() {
+    private fun showOverlay() {
         if (!Settings.canDrawOverlays(this)) {
             return
         }
         try {
             ContextCompat.startForegroundService(
                 this,
-                Intent(this, TrafficOverlayService::class.java),
+                TrafficOverlayService.showOverlayIntent(this),
             )
             viewModel.updateOverlayRunning(true)
         } catch (_: RuntimeException) {
@@ -137,16 +176,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun stopOverlayService() {
+    private fun hideOverlay() {
+        showOverlayWhenPermissionGranted = false
+        if (TrafficOverlayService.isRunning) {
+            startService(TrafficOverlayService.hideOverlayIntent(this))
+        }
+        viewModel.updateOverlayRunning(false)
+    }
+
+    private fun stopTrafficMonitoringService() {
+        trafficMonitoringRequested = false
+        showOverlayWhenPermissionGranted = false
+        connectedBackendVersion = null
         stopService(Intent(this, TrafficOverlayService::class.java))
         viewModel.updateOverlayRunning(false)
     }
 
     private fun openDashboard(url: String, themeMode: AppThemeMode) {
-        startActivity(
-            Intent(this, DashboardActivity::class.java)
-                .putExtra(DashboardActivity.EXTRA_DASHBOARD_URL, url)
-                .putExtra(DashboardActivity.EXTRA_THEME_MODE, themeMode.name),
-        )
+        startActivity(DashboardActivity.createIntent(this, url, themeMode))
     }
 }

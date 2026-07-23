@@ -25,6 +25,15 @@
             android:exported="false" />
 
         <activity
+            android:name=".dashboard.DashboardSheetActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:finishOnTaskLaunch="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity=""
+            android:theme="@style/Theme.MetaFloat.Translucent.Popup" />
+
+        <activity
             android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>

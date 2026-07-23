@@ -64,7 +64,7 @@ internal fun HomeContent(
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
     onToggleOverlay: () -> Unit,
-    onOpenDashboard: () -> Unit,
+    onDashboardAction: () -> Unit,
 ) {
     val contentSpacing = if (compactHeight) 8.dp else 12.dp
 
@@ -134,10 +134,11 @@ internal fun HomeContent(
 
         HomeActionButtons(
             overlayRunning = state.overlayRunning,
+            dashboardInstalled = state.dashboardInstalled,
             isDownloadingDashboard = state.isDownloadingDashboard,
             compact = compactHeight,
             onToggleOverlay = onToggleOverlay,
-            onOpenDashboard = onOpenDashboard,
+            onDashboardAction = onDashboardAction,
         )
     }
 }
@@ -452,10 +453,11 @@ private fun PortField(
 @Composable
 private fun HomeActionButtons(
     overlayRunning: Boolean,
+    dashboardInstalled: Boolean,
     isDownloadingDashboard: Boolean,
     compact: Boolean,
     onToggleOverlay: () -> Unit,
-    onOpenDashboard: () -> Unit,
+    onDashboardAction: () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val spacing = if (compact) 8.dp else 12.dp
@@ -468,8 +470,9 @@ private fun HomeActionButtons(
                 )
                 DashboardButton(
                     modifier = Modifier.fillMaxWidth(),
+                    dashboardInstalled = dashboardInstalled,
                     isDownloadingDashboard = isDownloadingDashboard,
-                    onClick = onOpenDashboard,
+                    onClick = onDashboardAction,
                 )
             }
         } else {
@@ -484,8 +487,9 @@ private fun HomeActionButtons(
                 )
                 DashboardButton(
                     modifier = Modifier.weight(1f),
+                    dashboardInstalled = dashboardInstalled,
                     isDownloadingDashboard = isDownloadingDashboard,
-                    onClick = onOpenDashboard,
+                    onClick = onDashboardAction,
                 )
             }
         }
@@ -513,6 +517,7 @@ private fun OverlayButton(
 @Composable
 private fun DashboardButton(
     modifier: Modifier,
+    dashboardInstalled: Boolean,
     isDownloadingDashboard: Boolean,
     onClick: () -> Unit,
 ) {
@@ -523,7 +528,11 @@ private fun DashboardButton(
     ) {
         ButtonLabel(
             stringResource(
-                if (isDownloadingDashboard) R.string.button_downloading else R.string.button_dashboard_open,
+                when {
+                    isDownloadingDashboard -> R.string.button_downloading
+                    dashboardInstalled -> R.string.button_dashboard_open
+                    else -> R.string.button_dashboard_download
+                },
             ),
         )
     }

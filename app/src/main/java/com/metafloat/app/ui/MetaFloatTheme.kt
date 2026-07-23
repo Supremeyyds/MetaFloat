@@ -34,11 +34,7 @@ fun MetaFloatTheme(
     themeMode: AppThemeMode,
     content: @Composable () -> Unit,
 ) {
-    val useDarkTheme = when (themeMode) {
-        AppThemeMode.SYSTEM -> isSystemInDarkTheme()
-        AppThemeMode.LIGHT -> false
-        AppThemeMode.DARK -> true
-    }
+    val useDarkTheme = themeMode.usesDarkTheme(isSystemInDarkTheme())
     MaterialTheme(
         colorScheme = if (useDarkTheme) DarkColorScheme else LightColorScheme,
         content = content,

@@ -142,6 +142,19 @@ class MainViewModel(
         mutableState.update { it.copy(overlayRunning = running) }
     }
 
+    fun restoreConnectedState(version: String?) {
+        mutableState.update { current ->
+            if (current.connectionState is ConnectionState.Idle) {
+                current.copy(
+                    connectionState = ConnectionState.Connected(version),
+                    isTesting = false,
+                )
+            } else {
+                current
+            }
+        }
+    }
+
     fun connectBackend() {
         val current = state.value
         val validationError = current.config.validate(current.portText)
@@ -156,6 +169,7 @@ class MainViewModel(
         configSaveJob?.cancel()
         connectJob?.cancel()
         connectJob = viewModelScope.launch {
+            mutableEvents.send(MainUiEvent.StopTrafficMonitoring)
             val config = state.value.config.copy(port = state.value.portText.toInt())
             settingsRepository.saveConnectionConfig(config)
             connectBackendInternal(config)
@@ -165,6 +179,9 @@ class MainViewModel(
     fun disconnectBackend() {
         connectJob?.cancel()
         connectJob = null
+        viewModelScope.launch {
+            mutableEvents.send(MainUiEvent.StopTrafficMonitoring)
+        }
         mutableState.update {
             it.copy(
                 connectionState = ConnectionState.Disconnected(
@@ -230,79 +247,66 @@ class MainViewModel(
     }
 
     fun reinstallDashboard() {
-        downloadDashboard(openAfterInstall = false)
+        viewModelScope.launch {
+            downloadDashboard()
+        }
     }
 
-    fun openDashboard() {
+    fun handleDashboardAction() {
         viewModelScope.launch {
+            val dashboardInstalled = dashboardInstaller.isInstalled()
+            mutableState.update { it.copy(dashboardInstalled = dashboardInstalled) }
+            if (!dashboardInstalled) {
+                downloadDashboard()
+                return@launch
+            }
             if (state.value.connectionState !is ConnectionState.Connected) {
                 mutableEvents.send(MainUiEvent.Toast(UiText.Resource(R.string.toast_backend_required)))
                 return@launch
             }
             settingsRepository.saveConnectionConfig(state.value.config)
-            if (dashboardInstaller.isInstalled()) {
-                mutableState.update { it.copy(dashboardInstalled = true) }
-                mutableEvents.send(
-                    MainUiEvent.OpenDashboard(
-                        url = state.value.config.dashboardUrl(),
-                        themeMode = state.value.themeMode,
-                    ),
-                )
-                return@launch
-            }
-            downloadDashboard(openAfterInstall = true)
+            mutableEvents.send(
+                MainUiEvent.OpenDashboard(
+                    url = state.value.config.dashboardUrl(),
+                    themeMode = state.value.themeMode,
+                ),
+            )
         }
     }
 
-    private fun downloadDashboard(openAfterInstall: Boolean) {
-        viewModelScope.launch {
-            if (state.value.isDownloadingDashboard) {
-                return@launch
-            }
-            mutableState.update { it.copy(isDownloadingDashboard = true) }
-            val mirror = state.value.downloadMirror
-            val customMirrorBaseUrl = state.value.customMirrorBaseUrl
-            val result = dashboardInstaller.downloadLatest(mirror, customMirrorBaseUrl)
-            val installed = dashboardInstaller.isInstalled()
-            mutableState.update {
-                it.copy(
-                    isDownloadingDashboard = false,
-                    dashboardInstalled = installed,
-                )
-            }
-            result.fold(
-                onSuccess = {
-                    mutableEvents.send(
-                        MainUiEvent.Toast(UiText.Resource(R.string.toast_dashboard_download_complete)),
-                    )
-                    if (openAfterInstall) {
-                        if (state.value.connectionState !is ConnectionState.Connected) {
-                            mutableEvents.send(
-                                MainUiEvent.Toast(UiText.Resource(R.string.toast_backend_required)),
-                            )
-                        } else {
-                            mutableEvents.send(
-                                MainUiEvent.OpenDashboard(
-                                    url = state.value.config.dashboardUrl(),
-                                    themeMode = state.value.themeMode,
-                                ),
-                            )
-                        }
-                    }
-                },
-                onFailure = { throwable ->
-                    val failureMessage = throwable.message?.let { message ->
-                        UiText.Resource(
-                            R.string.toast_dashboard_download_failed,
-                            listOf(message),
-                        )
-                    } ?: UiText.Resource(R.string.toast_dashboard_download_failed_unknown)
-                    mutableEvents.send(
-                        MainUiEvent.Toast(failureMessage),
-                    )
-                },
+    private suspend fun downloadDashboard() {
+        if (state.value.isDownloadingDashboard) {
+            return
+        }
+        mutableState.update { it.copy(isDownloadingDashboard = true) }
+        val mirror = state.value.downloadMirror
+        val customMirrorBaseUrl = state.value.customMirrorBaseUrl
+        val result = dashboardInstaller.downloadLatest(mirror, customMirrorBaseUrl)
+        val installed = dashboardInstaller.isInstalled()
+        mutableState.update {
+            it.copy(
+                isDownloadingDashboard = false,
+                dashboardInstalled = installed,
             )
         }
+        result.fold(
+            onSuccess = {
+                mutableEvents.send(
+                    MainUiEvent.Toast(UiText.Resource(R.string.toast_dashboard_download_complete)),
+                )
+            },
+            onFailure = { throwable ->
+                val failureMessage = throwable.message?.let { message ->
+                    UiText.Resource(
+                        R.string.toast_dashboard_download_failed,
+                        listOf(message),
+                    )
+                } ?: UiText.Resource(R.string.toast_dashboard_download_failed_unknown)
+                mutableEvents.send(
+                    MainUiEvent.Toast(failureMessage),
+                )
+            },
+        )
     }
 
     private suspend fun measureMirror(
@@ -358,10 +362,12 @@ class MainViewModel(
             )
         }
         result.fold(
-            onSuccess = {
+            onSuccess = { version ->
+                mutableEvents.send(MainUiEvent.StartTrafficMonitoring(version))
                 mutableEvents.send(MainUiEvent.Toast(UiText.Resource(R.string.toast_connection_success)))
             },
             onFailure = {
+                mutableEvents.send(MainUiEvent.StopTrafficMonitoring)
                 mutableEvents.send(MainUiEvent.Toast(UiText.Resource(R.string.toast_connection_failed)))
             },
         )
@@ -397,8 +403,14 @@ class MainViewModel(
     }
 
     private fun cancelActiveConnectionForConfigChange() {
+        val wasConnected = state.value.connectionState is ConnectionState.Connected
         connectJob?.cancel()
         connectJob = null
+        if (wasConnected) {
+            viewModelScope.launch {
+                mutableEvents.send(MainUiEvent.StopTrafficMonitoring)
+            }
+        }
     }
 
     private fun ConnectionState.afterConfigChange(): ConnectionState {
@@ -437,4 +449,6 @@ class MainViewModel(
 sealed interface MainUiEvent {
     data class Toast(val message: UiText) : MainUiEvent
     data class OpenDashboard(val url: String, val themeMode: AppThemeMode) : MainUiEvent
+    data class StartTrafficMonitoring(val version: String?) : MainUiEvent
+    data object StopTrafficMonitoring : MainUiEvent
 }
